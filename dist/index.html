@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Registration Dashboard | Medical Voice Assistant</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-light: #dbeafe;
+      --primary-dark: #1d4ed8;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --muted-light: #94a3b8;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --success-light: #dcfce7;
+      --danger: #dc2626;
+      --danger-light: #fee2e2;
+      --warning: #d97706;
+      --warning-light: #fef3c7;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-lg: 0 10px 30px rgba(0,0,0,0.10), 0 3px 8px rgba(0,0,0,0.06);
+      --radius: 14px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== Header ===== */
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: white;
+    }
+    .brand-text h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .brand-text p {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.2;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .live-dot {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .live-dot::before {
+      content: '';
+      width: 8px; height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ===== Stats Cards ===== */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    .stat-card .stat-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: 0.75rem;
+    }
+    .stat-card .stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    .stat-card .stat-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .stat-total .stat-icon { background: var(--primary-light); color: var(--primary); }
+    .stat-active .stat-icon { background: var(--success-light); color: var(--success); }
+    .stat-deleted .stat-icon { background: var(--danger-light); color: var(--danger); }
+    .stat-insured .stat-icon { background: var(--warning-light); color: var(--warning); }
+
+    /* ===== Main ===== */
+    main { max-width: 1280px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+
+    /* ===== Filters Bar ===== */
+    .filters {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 240px;
+    }
+    .search-wrap svg {
+      position: absolute;
+      left: 12px; top: 50%;
+      transform: translateY(-50%);
+      width: 18px; height: 18px;
+      color: var(--muted-light);
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 0.6rem 0.75rem 0.6rem 2.5rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s;
+      background: #f8fafc;
+    }
+    .search-wrap input:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .filters select {
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.9rem;
+      outline: none;
+      cursor: pointer;
+      background: #f8fafc;
+      transition: all 0.2s;
+    }
+    .filters select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .btn {
+      padding: 0.6rem 1.1rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--bg); color: var(--text); }
+
+    /* ===== Table ===== */
+    .table-wrap {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .table-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .table-header h2 {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .table-header .result-count {
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: var(--bg);
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+    }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #f8fafc; }
+    th {
+      text-align: left;
+      padding: 0.7rem 1.25rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.8rem 1.25rem;
+      font-size: 0.88rem;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    tbody tr {
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    tbody tr:hover { background: #eff6ff; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .patient-name {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+    }
+    .avatar-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+    .avatar-green { background: linear-gradient(135deg, #22c55e, #15803d); }
+    .avatar-purple { background: linear-gradient(135deg, #a855f7, #7c3aed); }
+    .avatar-orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+    .avatar-pink { background: linear-gradient(135deg, #ec4899, #be185d); }
+    .avatar-cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+
+    .name-text strong { display: block; font-weight: 600; font-size: 0.9rem; }
+    .name-text span { display: block; font-size: 0.75rem; color: var(--muted); }
+
+    .phone { font-family: 'SF Mono', 'Monaco', 'Courier New', monospace; font-size: 0.82rem; color: var(--text); }
+    .muted { color: var(--muted); }
+    .muted-dash { color: var(--muted-light); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .badge-active { background: var(--success-light); color: var(--success); }
+    .badge-deleted { background: var(--danger-light); color: var(--danger); }
+    .badge-insured { background: var(--warning-light); color: var(--warning); }
+    .badge-uninsured { background: #f1f5f9; color: var(--muted); }
+
+    /* ===== Modal ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--card);
+      border-radius: 18px;
+      max-width: 640px;
+      width: 100%;
+      margin: auto;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.25s ease-out;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .modal-header {
+      padding: 1.5rem 1.5rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .modal-header-info {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+    .modal-header-info .avatar {
+      width: 48px; height: 48px;
+      font-size: 1rem;
+    }
+    .modal-header h2 { font-size: 1.25rem; font-weight: 700; }
+    .modal-header p { font-size: 0.82rem; color: var(--muted); margin-top: 0.15rem; }
+    .modal-close {
+      background: var(--bg);
+      border: none;
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .modal-close:hover { background: var(--danger-light); color: var(--danger); }
+    .modal-body { padding: 0 1.5rem 1.5rem; }
+
+    .detail-section {
+      margin-bottom: 1.25rem;
+    }
+    .detail-section h3 {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.6rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+    }
+    .detail-item label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.2rem;
+    }
+    .detail-item .value {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .detail-item .value.empty { color: var(--muted-light); font-style: italic; font-weight: 400; }
+    .detail-item .value.mono { font-family: 'SF Mono', monospace; font-size: 0.82rem; }
+
+    /* ===== Loading & Empty ===== */
+    .loading-state, .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+    .spinner {
+      display: inline-block;
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.3;
+    }
+    .empty-state p.title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.3rem; color: var(--text); }
+    .empty-state p.subtitle { font-size: 0.88rem; }
+
+    /* ===== Toast ===== */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--text);
+      color: white;
+      padding: 0.8rem 1.4rem;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s;
+      z-index: 300;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--danger); }
+    .toast.success { background: var(--success); }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      main { padding: 1rem; }
+      header { padding: 0 1rem; }
+      .brand-text p { display: none; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="brand">
+    <div class="brand-icon">🏥</div>
+    <div class="brand-text">
+      <h1>Patient Registration</h1>
+      <p>Medical Voice Assistant</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-dot">Live Data</div>
+    <button class="btn btn-ghost" onclick="loadPatients()" title="Refresh">
+      ↻ Refresh
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- Stats Cards -->
+  <div class="stats-row">
+    <div class="stat-card stat-total">
+      <div class="stat-icon">👥</div>
+      <div class="stat-value" id="stat-total">—</div>
+      <div class="stat-label">Total Patients</div>
+    </div>
+    <div class="stat-card stat-active">
+      <div class="stat-icon">✓</div>
+      <div class="stat-value" id="stat-active">—</div>
+      <div class="stat-label">Active Records</div>
+    </div>
+    <div class="stat-card stat-deleted">
+      <div class="stat-icon">🗑</div>
+      <div class="stat-value" id="stat-deleted">—</div>
+      <div class="stat-label">Soft-Deleted</div>
+    </div>
+    <div class="stat-card stat-insured">
+      <div class="stat-icon">🛡</div>
+      <div class="stat-value" id="stat-insured">—</div>
+      <div class="stat-label">With Insurance</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="search-wrap">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input type="text" id="search" placeholder="Search by name, phone, city, or email..." />
+    </div>
+    <select id="filter-state">
+      <option value="">All States</option>
+    </select>
+    <select id="filter-status">
+      <option value="">All Records</option>
+      <option value="active">Active Only</option>
+      <option value="deleted">Deleted Only</option>
+    </select>
+    <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <div class="table-header">
+      <h2>Registered Patients</h2>
+      <span class="result-count" id="result-count">—</span>
+    </div>
+    <div class="table-scroll">
+      <div id="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p style="margin-top:1rem">Loading patients...</p>
+      </div>
+      <div id="empty-state" class="empty-state" style="display:none">
+        <div class="empty-icon">📭</div>
+        <p class="title">No patients found</p>
+        <p class="subtitle">Try adjusting your filters or register a new patient via phone.</p>
+      </div>
+      <table id="patient-table" style="display:none">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Date of Birth</th>
+            <th>Sex</th>
+            <th>Phone</th>
+            <th>Location</th>
+            <th>Insurance</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="patient-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="avatar avatar-blue" id="modal-avatar">—</div>
+        <div>
+          <h2 id="modal-title">Patient Details</h2>
+          <p id="modal-subtitle">Registered via voice call</p>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/patients';
+let allPatients = [];
+
+// --- Init ---
+document.addEventListener('DOMContentLoaded', () => {
+  loadPatients();
+  document.getElementById('search').addEventListener('input', applyFilters);
+  document.getElementById('filter-state').addEventListener('change', applyFilters);
+  document.getElementById('filter-status').addEventListener('change', applyFilters);
+});
+
+// --- API ---
+async function loadPatients() {
+  showLoading(true);
+  try {
+    const res = await fetch(API);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    allPatients = json.data || [];
+    populateStateFilter(allPatients);
+    renderTable(allPatients);
+    updateStats(allPatients);
+  } catch (err) {
+    showToast('Failed to load patients: ' + err.message, 'error');
+    showEmpty(true);
+  }
+  showLoading(false);
+}
+
+// --- Render Table ---
+function renderTable(patients) {
+  const tbody = document.getElementById('patient-tbody');
+  tbody.innerHTML = '';
+  document.getElementById('result-count').textContent = patients.length + ' shown';
+
+  if (patients.length === 0) {
+    showEmpty(true);
+    document.getElementById('patient-table').style.display = 'none';
+    return;
+  }
+
+  showEmpty(false);
+  document.getElementById('patient-table').style.display = '';
+
+  patients.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.onclick = () => showDetail(p);
+    const initials = getInitials(p.first_name, p.last_name);
+    const avatarClass = getAvatarClass(p.patient_id);
+    const status = p.deleted_at
+      ? '<span class="badge badge-deleted">● Deleted</span>'
+      : '<span class="badge badge-active">● Active</span>';
+    const insurance = p.insurance_provider
+      ? '<span class="badge badge-insured">🛡 Insured</span>'
+      : '<span class="badge badge-uninsured">Uninsured</span>';
+    const location = `${esc(p.city)}, ${esc(p.state)} ${esc(p.zip_code)}`;
+
+    tr.innerHTML = `
+      <td>
+        <div class="patient-name">
+          <div class="avatar ${avatarClass}">${initials}</div>
+          <div class="name-text">
+            <strong>${esc(p.first_name)} ${esc(p.last_name)}</strong>
+            <span>${esc(p.preferred_language || 'English')}</span>
+          </div>
+        </div>
+      </td>
+      <td>${fmtDate(p.date_of_birth)}</td>
+      <td>${esc(p.sex)}</td>
+      <td class="phone">${fmtPhone(p.phone_number)}</td>
+      <td>${location}</td>
+      <td>${insurance}</td>
+      <td>${status}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// --- Detail Modal ---
+function showDetail(p) {
+  const initials = getInitials(p.first_name, p.last_name);
+  const avatarClass = getAvatarClass(p.patient_id);
+
+  document.getElementById('modal-title').textContent = `${p.first_name} ${p.last_name}`;
+  document.getElementById('modal-subtitle').textContent = `Patient ID: ${p.patient_id}`;
+  const avatar = document.getElementById('modal-avatar');
+  avatar.className = `avatar ${avatarClass}`;
+  avatar.textContent = initials;
+
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div class="detail-section">
+      <h3>Personal Information</h3>
+      <div class="detail-grid">
+        <div class="detail-item"><label>First Name</label><span class="value">${esc(p.first_name)}</span></div>
+        <div class="detail-item"><label>Last Name</label><span class="value">${esc(p.last_name)}</span></div>
+        <div class="detail-item"><label>Date of Birth</label><span class="value">${fmtDate(p.date_of_birth)}</span></div>
+        <div class="detail-item"><label>Sex</label><span class="value">${esc(p.sex)}</span></div>
+        <div class="detail-item"><label>Preferred Language</label><span class="value">${esc(p.preferred_language || 'English')}</span></div>
+        <div class="detail-item"><label>Email</label><span class="value ${p.email ? '' : 'empty'}">${p.email ? esc(p.email) : 'Not provided'}</span></div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>Contact Information</h3>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Phone Number</label><span class="value mono">${fmtPhone(p.phone_number)}</span></div>
+        <div class="detail-item"><label>Address Line 1</label><span class="value">${esc(p.address_line_1)}</span></div>
+        <div class="detail-item"><label>Address Line 2</label><span class="value ${p.address_line_2 ? '' : 'empty'}">${p.address_line_2 ? esc(p.address_line_2) : 'Not provided'}</span></div>
+        <div class="detail-item"><label>City</label><span class="value">${esc(p.city)}</span></div>
+        <div class="detail-item"><label>State</label><span class="value">${esc(p.state)}</span></div>
+        <div class="detail-item"><label>ZIP Code</label><span class="value">${esc(p.zip_code)}</span></div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>Insurance & Emergency</h3>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Insurance Provider</label><span class="value ${p.insurance_provider ? '' : 'empty'}">${p.insurance_provider ? esc(p.insurance_provider) : 'Not provided'}</span></div>
+        <div class="detail-item"><label>Member ID</label><span class="value ${p.insurance_member_id ? '' : 'empty'}">${p.insurance_member_id ? esc(p.insurance_member_id) : 'Not provided'}</span></div>
+        <div class="detail-item"><label>Emergency Contact</label><span class="value ${p.emergency_contact_name ? '' : 'empty'}">${p.emergency_contact_name ? esc(p.emergency_contact_name) : 'Not provided'}</span></div>
+        <div class="detail-item"><label>Emergency Phone</label><span class="value ${p.emergency_contact_phone ? '' : 'empty'}">${p.emergency_contact_phone ? fmtPhone(p.emergency_contact_phone) : 'Not provided'}</span></div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>Metadata</h3>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Patient ID</label><span class="value mono">${esc(p.patient_id)}</span></div>
+        <div class="detail-item"><label>Status</label><span class="value">${p.deleted_at ? '<span style="color:var(--danger)">Deleted</span>' : '<span style="color:var(--success)">Active</span>'}</span></div>
+        <div class="detail-item"><label>Created</label><span class="value">${fmtDateTime(p.created_at)}</span></div>
+        <div class="detail-item"><label>Last Updated</label><span class="value">${fmtDateTime(p.updated_at)}</span></div>
+        ${p.deleted_at ? `<div class="detail-item"><label>Deleted At</label><span class="value" style="color:var(--danger)">${fmtDateTime(p.deleted_at)}</span></div>` : ''}
+      </div>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+
+// --- Filters ---
+function applyFilters() {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const stateFilter = document.getElementById('filter-state').value;
+  const statusFilter = document.getElementById('filter-status').value;
+
+  let filtered = allPatients;
+
+  if (q) {
+    filtered = filtered.filter(p =>
+      `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) ||
+      p.phone_number.includes(q) ||
+      (p.city || '').toLowerCase().includes(q) ||
+      (p.email || '').toLowerCase().includes(q) ||
+      (p.zip_code || '').includes(q)
+    );
+  }
+
+  if (stateFilter) {
+    filtered = filtered.filter(p => p.state === stateFilter);
+  }
+
+  if (statusFilter === 'active') {
+    filtered = filtered.filter(p => !p.deleted_at);
+  } else if (statusFilter === 'deleted') {
+    filtered = filtered.filter(p => p.deleted_at);
+  }
+
+  renderTable(filtered);
+}
+
+function clearFilters() {
+  document.getElementById('search').value = '';
+  document.getElementById('filter-state').value = '';
+  document.getElementById('filter-status').value = '';
+  renderTable(allPatients);
+}
+
+function populateStateFilter(patients) {
+  const select = document.getElementById('filter-state');
+  const currentVal = select.value;
+  const states = [...new Set(patients.map(p => p.state).filter(Boolean))].sort();
+  select.innerHTML = '<option value="">All States</option>' +
+    states.map(s => `<option value="${s}">${s}</option>`).join('');
+  select.value = currentVal;
+}
+
+// --- Stats ---
+function updateStats(patients) {
+  const total = patients.length;
+  const active = patients.filter(p => !p.deleted_at).length;
+  const deleted = patients.filter(p => p.deleted_at).length;
+  const insured = patients.filter(p => p.insurance_provider && !p.deleted_at).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-deleted').textContent = deleted;
+  document.getElementById('stat-insured').textContent = insured;
+}
+
+// --- Helpers ---
+function showLoading(show) {
+  document.getElementById('loading').style.display = show ? '' : 'none';
+  if (show) {
+    document.getElementById('patient-table').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'none';
+  }
+}
+
+function showEmpty(show) {
+  document.getElementById('empty-state').style.display = show ? '' : 'none';
+}
+
+function showToast(msg, type = '') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'toast show ' + type;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const date = new Date(d);
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function fmtDateTime(d) {
+  if (!d) return '';
+  const date = new Date(d);
+  return date.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtPhone(p) {
+  if (!p) return '';
+  const d = p.replace(/\D/g, '');
+  if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+  return p;
+}
+
+function getInitials(first, last) {
+  const f = (first || '').charAt(0).toUpperCase();
+  const l = (last || '').charAt(0).toUpperCase();
+  return f + l;
+}
+
+const avatarClasses = ['avatar-blue', 'avatar-green', 'avatar-purple', 'avatar-orange', 'avatar-pink', 'avatar-cyan'];
+function getAvatarClass(id) {
+  if (!id) return 'avatar-blue';
+  const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  return avatarClasses[hash % avatarClasses.length];
+}
+
+// Close modal on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+
+</body>
+</html>

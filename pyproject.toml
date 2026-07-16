@@ -1,0 +1,31 @@
+[project]
+name = "medical-voice-assistant"
+version = "0.1.0"
+description = "Voice AI agent for patient registration via phone (Vapi + Groq + Supabase + FastAPI)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.139.0",
+    "uvicorn[standard]>=0.34,<0.40",
+    "pydantic>=2.10,<3",
+    "pydantic-settings>=2.7,<3",
+    "sqlmodel>=0.0.22,<0.1",
+    "sqlalchemy>=2.0,<3",
+    "alembic>=1.14,<2",
+    "psycopg2-binary>=2.9,<3",
+    "groq>=0.13,<2",
+    "vapi-server-sdk>=1.9,<2",
+    "python-dateutil>=2.9,<3",
+    "email-validator>=2.2,<3",
+    "httpx>=0.28,<0.29",
+    "python-multipart>=0.0.20",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
