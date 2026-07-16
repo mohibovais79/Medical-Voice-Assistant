@@ -9,10 +9,16 @@ Voice AI / Conversational AI Engineer role.
 
 | Resource | URL |
 |---|---|
-| Phone number | `+1 (XXX) XXX-XXXX` — _fill in after provisioning_ |
-| API base URL | `https://your-app.onrender.com` — _fill in after deploy_ |
-| API docs (Swagger) | `https://your-app.onrender.com/docs` |
-| Health check | `https://your-app.onrender.com/health` |
+| **Phone number** | **+1 (716) 477-0620** — call it to register as a patient |
+| **Dashboard** | https://medical-voice-assistant-psuf.onrender.com/ |
+| **API base URL** | https://medical-voice-assistant-psuf.onrender.com |
+| API docs (Swagger) | https://medical-voice-assistant-psuf.onrender.com/docs |
+| Health check | https://medical-voice-assistant-psuf.onrender.com/health |
+
+> **Note on cold starts:** hosted on Render's free tier, which spins down
+> after ~15 min of inactivity. The first request/call after idle time may
+> take up to ~50s to wake the server. The Vapi assistant's webhook timeout
+> is set to 90s to absorb this. Subsequent calls are instant.
 
 ## Architecture
 
@@ -51,6 +57,7 @@ Caller ──phone──> Vapi ──webhook──> FastAPI (Render)
 | **Backend** | Python FastAPI | Async, fast to build, auto-generated Swagger docs, excellent Pydantic validation. |
 | **Database** | Supabase (Postgres) | Managed Postgres accessed via direct connection (SQLModel + Alembic migrations). Survives restarts, proper constraints + soft-delete. |
 | **Hosting** | Render | Free tier, simple Python deploys, auto-sleep on free tier is acceptable for a demo. |
+| **Dashboard** | Static HTML/JS via FastAPI's `app.frontend()` | Zero extra infra — same service serves the API and a live-data dashboard. No build step, no separate frontend deploy. |
 
 ## Project Structure
 
@@ -77,38 +84,65 @@ alembic/
 tests/
 ├── test_schema.py           # Unit tests for Pydantic validation
 └── test_api.py              # Integration tests for REST API (mocked DB)
+dist/
+└── index.html               # Live dashboard (fetches /patients, no build step)
+alembic.ini                  # Alembic config (points at alembic/ dir)
+render.yaml                  # Render Blueprint (build/start commands, env var list)
 ```
 
-## Setup
+## Local Setup
+
+This project uses **[uv](https://docs.astral.sh/uv/)** for Python dependency
+management (fast, reproducible, single lockfile). `pip` also works if you
+prefer — a plain `requirements.txt` is kept in sync for that path.
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.11+ (project pins **3.13** via `.python-version`)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) installed
+  (`curl -LsSf https://astral.sh/uv/install.sh | sh` or `pip install uv`)
 - Accounts + API keys for: **Supabase**, **Groq**, **Vapi**
-- (Optional) A Render account for hosting
+- (Optional) [ngrok](https://ngrok.com/) if you want to test the voice agent
+  against your local machine instead of a deployed URL
+- (Optional) A Render account if you want to redeploy your own instance
 
-### 1. Clone & install
+### 1. Clone & install dependencies
 
 ```bash
 git clone https://github.com/mohibovais79/Medical-Voice-Assistant.git
 cd Medical-Voice-Assistant
+
+# uv reads pyproject.toml + uv.lock and creates .venv automatically
+uv sync
+```
+
+<details>
+<summary>Using pip instead of uv</summary>
+
+```bash
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 pip install -r requirements-dev.txt  # for tests
 ```
+</details>
 
 ### 2. Configure environment
 
 ```bash
 cp .env.example .env
-# Edit .env with your real keys:
-#   SUPABASE_CONN   — from Supabase Dashboard > Project Settings > Database >
-#                     Connection string > Transaction pooler > URI
-#   GROQ_API_KEY    — from https://console.groq.com/keys
-#   VAPI_API_KEY    — from https://dashboard.vapi.ai
-#   VAPI_SERVER_URL — your public URL (Render URL or ngrok URL)
 ```
+
+Edit `.env` with your real keys:
+
+| Variable | Where to get it |
+|---|---|
+| `SUPABASE_CONN` | Supabase Dashboard → Project Settings → Database → Connection string → **Transaction pooler** → URI. Use the pooler (not "Direct connection") — the direct-connection host is IPv6-only and will fail to resolve from most networks/CI. |
+| `GROQ_API_KEY` | https://console.groq.com/keys |
+| `VAPI_API_KEY` | https://dashboard.vapi.ai → Settings → API Keys |
+| `VAPI_PUBLIC_KEY` | Same page — used if you add webhook signature verification |
+| `VAPI_ASSISTANT_ID` | Filled in after you run `create-assistant` (step 5) |
+| `VAPI_SERVER_URL` | Your public webhook URL — an ngrok URL for local dev, or your Render URL in production. Only used by the local CLI in `app/voice/assistant.py`, not read by the running server. |
 
 ### 3. Initialize the database (Alembic migration)
 
@@ -120,62 +154,101 @@ patients:
 uv run alembic upgrade head
 ```
 
-### 4. Run locally
+### 4. Run the server locally
 
 ```bash
-uvicorn app.main:app --reload --port 8000
-# API docs at http://localhost:8000/docs
+uv run uvicorn app.main:app --reload --port 8000
+# API docs:  http://localhost:8000/docs
+# Dashboard: http://localhost:8000/
 ```
 
-For Vapi to reach your local server, expose it with ngrok:
+### 5. (Optional) Expose your local server for a live voice test
+
+Vapi needs a public HTTPS URL to send webhooks to. If you want to test the
+voice agent against your local machine (instead of the deployed Render URL),
+use ngrok:
 
 ```bash
 ngrok http 8000
-# Copy the https URL and set VAPI_SERVER_URL in .env to that URL
+# Copy the https://*.ngrok-free.dev URL it prints
+# Set VAPI_SERVER_URL in .env to that URL + "/voice/webhook"
 ```
 
-### 5. Create the Vapi assistant + provision a phone number
+### 6. Create the Vapi assistant
 
 ```bash
-# Create the assistant (uses the system prompt + tools from app/voice/)
-python -m app.voice.assistant create-assistant
-# Note the "id" from the output
+uv run python -m app.voice.assistant create-assistant
+# Note the "id" from the JSON output → save it as VAPI_ASSISTANT_ID in .env
 ```
 
-Then provision a phone number via the **Vapi dashboard**:
-
-1. Go to https://dashboard.vapi.ai > **Phone Numbers** > **Buy Number**.
-2. Pick a US area code and purchase the number.
-3. Attach the assistant you just created to that phone number
-   (select it in the "Assistant" dropdown).
-4. The number is now dialable — callers will reach your assistant.
-
-> Phone number provisioning is done in the Vapi dashboard (not via code)
-> to keep the setup simple and avoid accidental charges.
-
-### 6. Deploy to Render
-
-1. Push to GitHub.
-2. In Render: **New > Web Service > connect your repo** (or use `render.yaml`).
-3. Set the env vars (same as `.env`) in the Render dashboard.
-4. Deploy. Render will run `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
-5. Update `VAPI_SERVER_URL` in Vapi (via `update-assistant`) to the Render URL.
-
-### 7. Test
+This registers the system prompt (`app/voice/prompt.py`), the 3 tools
+(`app/voice/tools.py`), the Groq model config, and your server URL as a new
+Vapi assistant. You'll also need a Groq **credential** attached (Vapi calls
+Groq on your behalf) — either add it via the Vapi dashboard under
+**Settings → Provider Keys**, or create it via API:
 
 ```bash
-# Run unit + integration tests
-pytest tests/ -v
+curl -X POST https://api.vapi.ai/credential \
+  -H "Authorization: Bearer $VAPI_API_KEY" -H "Content-Type: application/json" \
+  -d "{\"provider\":\"groq\",\"apiKey\":\"$GROQ_API_KEY\"}"
+# Then attach the returned credential id to the assistant via update-assistant
+```
 
-# Test the API directly
+### 7. Provision a phone number
+
+Done via the **Vapi dashboard** (not code, to avoid accidental charges):
+
+1. Go to https://dashboard.vapi.ai → **Phone Numbers** → **Buy Number** (or
+   claim a free Vapi number).
+2. Attach the assistant you just created (select it in the "Assistant"
+   dropdown).
+3. The number is now dialable — callers will reach your assistant.
+
+### 8. Deploy to Render
+
+1. Push to GitHub (make sure everything is actually committed — check
+   `git status`; `dist/`, `app/`, `tests/`, `alembic/` etc. must be tracked).
+2. In Render: **New → Web Service** → connect your repo.
+3. Build command: `pip install -r requirements.txt && alembic upgrade head`
+4. Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+5. Add the env vars from `.env` (skip `VAPI_SERVER_URL`, not needed at
+   runtime — see table above).
+6. Deploy. Once live, update the assistant's server URL to point at Render:
+
+```bash
+uv run python -c "
+from vapi import Vapi
+from vapi.types import Server
+from app.core.config import get_settings
+s = get_settings()
+c = Vapi(token=s.vapi_api_key)
+c.assistants.update(
+    id='<your-assistant-id>',
+    server=Server(url='https://<your-app>.onrender.com/voice/webhook', timeout_seconds=90),
+)
+"
+```
+
+### 9. Run tests
+
+```bash
+uv run pytest tests/ -v
+```
+
+### 10. Try it end-to-end
+
+```bash
+# List patients (dashboard shows the same data at http://localhost:8000/)
 curl http://localhost:8000/patients
+
+# Create one via the API
 curl -X POST http://localhost:8000/patients \
   -H "Content-Type: application/json" \
   -d '{"first_name":"Test","last_name":"User","date_of_birth":"1990-01-15",
        "sex":"Male","phone_number":"5551234567","address_line_1":"1 Test St",
        "city":"Testville","state":"CA","zip_code":"90001"}'
 
-# Call the phone number and register a patient!
+# Or just call the phone number and register a patient by voice!
 ```
 
 ## API Reference
@@ -224,35 +297,51 @@ conversational quality. Key design decisions:
 - Call transcripts are logged on `end-of-call-report` (bonus: persisting to
   `call_transcripts` table is stubbed but not wired in the 3-hour version).
 
+## Bonus Features Implemented
+
+| Bonus | Status |
+|---|---|
+| **Duplicate detection** | ✅ `lookup_patient_by_phone` tool + API 409 check on `POST /patients` |
+| **Automated tests** | ✅ 27 tests (`tests/test_api.py` + `tests/test_schema.py`) |
+| **Dashboard** | ✅ Live HTML/JS dashboard at `/`, fetches `/patients` in real time (no hardcoded data) |
+| Call transcript storage | ⚠️ Partial — transcripts are logged to stdout on `end-of-call-report`, not yet persisted to a `call_transcripts` table |
+| Multi-language support | ⚠️ Partial — `preferred_language` field exists in the schema, but the prompt/LLM flow is English-only |
+| Appointment scheduling | ❌ Not implemented |
+
 ## Known Limitations & Trade-offs
 
+- **Render free-tier cold starts** — see the callout at the top of this
+  README. The very first call/request after ~15 minutes of inactivity can
+  take **up to ~50 seconds** to respond while the instance spins back up.
+  The Vapi assistant's webhook timeout is set to 90s specifically to survive
+  this without erroring, but the caller will experience dead air during that
+  window. All calls after the instance is warm are instant. Upgrading to
+  Render's Starter plan ($7/mo) eliminates this entirely.
 - **No webhook signature verification** — Vapi can sign webhooks with a public
-  key; we accept all POSTs for simplicity. In production, verify the signature.
+  key (`VAPI_PUBLIC_KEY`); we accept all POSTs for simplicity. In production,
+  verify the signature before trusting the payload.
 - **CORS is wide open** (`*`) — fine for a demo; tighten to known origins in prod.
-- **Service-role Supabase key** — used server-side only (never exposed to
-  browser), but in production you'd use Row Level Security + anon key + JWT.
+- **Supabase connection** — uses the Transaction Pooler (IPv4-reachable,
+  PgBouncer) rather than the Direct Connection host, which is IPv6-only and
+  fails to resolve on many networks/CI runners.
 - **No HIPAA compliance** — this is a technical assessment, not a production
   healthcare system. Do not store real patient data.
-- **Render free tier sleeps** — the first call after idle may take ~30s to wake.
-  For a always-on demo, upgrade to a paid plan.
-- **Call transcripts** are logged but not persisted to the DB table in this
-  version (stubbed in `webhook.py`).
-- **Single-language** — the prompt is English-only. Multi-language (Spanish)
-  is a documented bonus; the prompt mentions it but Groq tool-calling in
-  Spanish is not tested.
+- **Call transcripts** are logged but not persisted to a DB table in this
+  version (see Bonus table above).
+- **Single-language** — the prompt is English-only (see Bonus table above).
 - **No retry on DB write failure** — the LLM tells the caller to call back.
   A more robust system would retry with backoff.
 
 ## Next Steps (if more time)
 
 1. Verify Vapi webhook signatures (`VAPI_PUBLIC_KEY`).
-2. Persist call transcripts to `call_transcripts` table.
-3. Multi-language support (detect "Hablo español" → switch prompt).
+2. Persist call transcripts to a `call_transcripts` table linked to `patient_id`.
+3. Multi-language support (detect "Hablo español" → switch prompt + voice).
 4. Appointment scheduling tool (mock data).
-5. Simple web dashboard (HTML/JS reading `/patients`).
-6. RAG layer using pgvector for FAQ/knowledge-base lookups during the call.
-7. Rate limiting + authentication on the REST API.
-8. End-to-end call tests with Vapi's test-call API.
+5. RAG layer using pgvector for FAQ/knowledge-base lookups during the call.
+6. Rate limiting + authentication on the REST API.
+7. End-to-end call tests with Vapi's test-call API.
+8. Keep-alive ping (cron) or paid Render plan to eliminate cold starts entirely.
 
 ## License
 

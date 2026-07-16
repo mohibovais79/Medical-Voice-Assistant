@@ -80,7 +80,12 @@ def _build_assistant_kwargs(server_url: str) -> dict[str, Any]:
 
     server = Server(
         url=server_url,
-        timeout_seconds=30,
+        # 90s to absorb Render free-tier cold starts (can take up to ~50s
+        # after idle spin-down). Vapi's general server webhook timeout can
+        # go up to 300s. Note: this does NOT apply to the assistant-request
+        # webhook, which has a hard 7.5s cap — we don't use that flow since
+        # our assistant config is static, not fetched dynamically per-call.
+        timeout_seconds=90,
     )
 
     return {
